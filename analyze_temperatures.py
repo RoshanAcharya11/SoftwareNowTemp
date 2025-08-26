@@ -29,20 +29,29 @@ def read_csv_files(folder_path="temperatures"):
     return data
 
 def analyze_temperatures(data):
-    """Calculate seasonal averages and write to file."""
+    """Calculate seasonal averages and collect per-station temperatures."""
     season_sums = defaultdict(float)
     season_counts = defaultdict(int)
+    station_temps = defaultdict(list)
+    
     for row in data:
+        station = row['STATION_NAME']
         for season, months in SEASONS.items():
             for m in months:
                 temp = row.get(m)
                 if temp is not None:
                     season_sums[season] += temp
                     season_counts[season] += 1
+                    station_temps[station].append(temp)
+    
+    # Seasonal averages
     season_averages = {s: season_sums[s] / season_counts[s] if season_counts[s] else 0.0 for s in SEASONS}
     with open('average_temp.txt', 'w', encoding='utf-8') as f:
         for season, avg in season_averages.items():
             f.write(f"{season}: {avg:.1f}°C\n")
+    
+    # TODO: Calculate temperature range
+    # TODO: Calculate temperature stability
     return season_averages
 
 def main():
@@ -51,8 +60,6 @@ def main():
         data = read_csv_files()
         season_averages = analyze_temperatures(data)
         print(f"Seasonal averages: {season_averages}")
-        # TODO: Calculate largest temperature range
-        # TODO: Calculate temperature stability
     except Exception as e:
         print(f"Error: {e}")
 
