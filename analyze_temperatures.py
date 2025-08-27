@@ -29,7 +29,7 @@ def read_csv_files(folder_path="temperatures"):
     return data
 
 def analyze_temperatures(data):
-    """Calculate seasonal averages and collect per-station temperatures."""
+    """Calculate seasonal averages, collect per-station temperatures, and compute range."""
     season_sums = defaultdict(float)
     season_counts = defaultdict(int)
     station_temps = defaultdict(list)
@@ -50,16 +50,26 @@ def analyze_temperatures(data):
         for season, avg in season_averages.items():
             f.write(f"{season}: {avg:.1f}°C\n")
     
-    # TODO: Calculate temperature range
+    # Compute temperature range
+    station_stats = {
+        s: {'range': max(temps) - min(temps), 'max': max(temps), 'min': min(temps)}
+        for s, temps in station_temps.items() if temps
+    }
+    if not station_stats:
+        raise ValueError("No valid temperature data.")
+    max_range = max(station_stats.values(), key=lambda x: x['range'])['range']
+    
+    # TODO: Add range output
     # TODO: Calculate temperature stability
-    return season_averages
+    return season_averages, max_range, station_stats
 
 def main():
     """Execute temperature analysis."""
     try:
         data = read_csv_files()
-        season_averages = analyze_temperatures(data)
+        season_averages, max_range, station_stats = analyze_temperatures(data)
         print(f"Seasonal averages: {season_averages}")
+        print(f"Max range: {max_range}")
     except Exception as e:
         print(f"Error: {e}")
 
