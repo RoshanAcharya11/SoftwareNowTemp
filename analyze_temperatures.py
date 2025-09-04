@@ -1,14 +1,15 @@
-import os
-import csv
-import statistics
-from collections import defaultdict
-import logging
+# Necessary library used in the program
+import os # helps work with files and folders
+import csv # helps read cdv files
+import statistics # allows calculation of averages and standard deviation
+from collections import defaultdict # helps group data easily
+import logging # records program progress and errors for debugging
 
 # Set up logging to track execution and catch errors during processing
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Define Australian seasons (Southern Hemisphere - December is summer start)
-# Logic: Group months by seasonal patterns for meaningful temperature analysis
+# Define Australian seasons (Southern Hemisphere -summer starts in december)
+# Logic: Grouping months by seasonal patterns for meaningful temperature analysis
 SEASONS = {
     'Summer': ['December', 'January', 'February'],  # Hottest months
     'Autumn': ['March', 'April', 'May'],            # Cooling transition
@@ -16,33 +17,33 @@ SEASONS = {
     'Spring': ['September', 'October', 'November']  # Warming transition
 }
 
-# Flatten all months into single list to avoid repetition in data processing
-# Thinking: Rather than hardcode month lists 4 times, create once and reuse
-ALL_MONTHS = [month for months in SEASONS.values() for month in months]
+#Replacing hardcoded values through inner loops in the SEASONS dictionary
+ALL_MONTHS = [month for months in SEASONS.values() for month in months] # loops through each season's month & loops again through each month to generate all the months within the season
 
 def read_csv_files(folder_path="temperatures"):
     """
     Read and validate CSV files, returning clean temperature data.
     
     Working Logic:
-    1. Check if folder exists (fail fast if path is wrong)
+    1. Check if folder exists (fails if path is wrong)
     2. Find all CSV files in folder (filter by extension)
     3. For each CSV: validate columns, clean temperature data, collect rows
     4. Convert temperature strings to floats, handle empty/invalid values as None
     5. Return combined dataset from all valid CSV files
     
-    Thinking: Batch process all CSVs to handle multi-file datasets efficiently
+    Batch process all CSVs to handle multi-file datasets efficiently
     """
     # Safety check: Ensure the data folder exists before attempting to read
-    if not os.path.exists(folder_path):
+    if not os.path.exists(folder_path): # Checking whether folder exists 
         logging.error(f"Folder '{folder_path}' not found.")
         raise FileNotFoundError(f"Folder '{folder_path}' not found.")
     
     all_data = []
+
     # Filter for CSV files only (avoid processing non-CSV files accidentally)
     csv_files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
     
-    # Early exit if no CSV files found (common user error)
+    # Exits early if no CSV files found (common user error)
     if not csv_files:
         raise ValueError("No CSV files found in the specified folder.")
     
@@ -54,7 +55,6 @@ def read_csv_files(folder_path="temperatures"):
                 reader = csv.DictReader(f)
                 
                 # Validate CSV structure: Must have station name + all 12 months
-                # Thinking: Better to skip bad files than crash entire analysis
                 required_cols = ['STATION_NAME'] + ALL_MONTHS
                 if not all(col in reader.fieldnames for col in required_cols):
                     logging.warning(f"'{filename}' missing required columns. Skipping.")
@@ -92,11 +92,11 @@ def calculate_seasonal_averages(data):
     2. Calculate mean temperature for each season
     3. Save results to file for reference
     
-    Thinking: Aggregate approach gives overall seasonal patterns rather than 
+    Note: Aggregate approach gives overall seasonal patterns rather than 
     per-station averages, which is more useful for climate analysis
     """
     # Collect temperature values grouped by season
-    # Logic: Flatten all data points by season to get overall patterns
+    # Note: Flatten all data points by season to get overall patterns
     season_data = defaultdict(list)
     
     for row in data:
@@ -106,7 +106,7 @@ def calculate_seasonal_averages(data):
             season_data[season].extend(temps)  # Add to running list for this season
     
     # Calculate average temperature per season
-    # Thinking: Use mean of all data points, handle empty seasons gracefully
+    # Note: Use mean of all data points, handle empty seasons gracefully
     season_averages = {
         season: statistics.mean(temps) if temps else 0.0 
         for season, temps in season_data.items()
@@ -134,11 +134,11 @@ def find_largest_temp_range(data):
     3. Find station(s) with the maximum range value
     4. Save detailed results showing range and extremes
     
-    Thinking: Temperature range indicates climate variability - useful for 
+    Note: Temperature range indicates climate variability - useful for 
     identifying continental vs coastal climate patterns
     """
     # Group all temperature readings by station name
-    # Logic: Need all temps per station to find min/max across entire year
+    # Requirement: Need all temps per station to find min/max across entire year
     station_temps = defaultdict(list)
     
     for row in data:
@@ -148,7 +148,7 @@ def find_largest_temp_range(data):
         station_temps[station].extend(temps)  # Accumulate across multiple years if present
     
     # Calculate temperature range (max - min) for each station
-    # Thinking: Range shows climate variability - higher range = more extreme seasons
+    # Note: Range shows climate variability - higher range = more extreme seasons
     station_ranges = {}
     for station, temps in station_temps.items():
         if temps:  # Only process stations with valid data
@@ -193,11 +193,11 @@ def find_temperature_stability(data):
     4. Find stations with highest stddev (most variable/unpredictable climate)
     5. Save both extremes for comparison
     
-    Thinking: Standard deviation is the best metric for temperature consistency.
-    Low stddev = steady climate, High stddev = extreme swings between hot/cold
+   Standard deviation is the best metric for temperature consistency.
+    Low stddev = steady climate / High stddev = extreme swings between hot/cold
     """
     # Accumulate all temperature readings by station
-    # Logic: Need full temperature dataset per station to calculate meaningful stddev
+    # Requirement: Need full temperature dataset per station to calculate meaningful stddev
     station_temps = defaultdict(list)
     
     for row in data:
@@ -207,7 +207,7 @@ def find_temperature_stability(data):
         station_temps[station].extend(temps)  # Build complete temperature history
     
     # Calculate standard deviation for each station
-    # Thinking: stddev measures how much temperatures vary from the mean
+    # stddev measures how much temperatures vary from the mean
     # Higher stddev = more unpredictable/variable climate
     station_stddevs = {}
     for station, temps in station_temps.items():
@@ -222,12 +222,12 @@ def find_temperature_stability(data):
         raise ValueError("No valid data for stability calculation.")
     
     # Identify extremes: most stable (min stddev) and most variable (max stddev)
-    # Logic: Multiple stations might tie, so find all stations matching min/max values
+    # Note: Multiple stations might tie, so find all stations matching min/max values
     min_stddev = min(station_stddevs.values())  # Most consistent temperatures
     max_stddev = max(station_stddevs.values())  # Most variable temperatures
     
     # Find all stations matching the extreme values (handle ties)
-    # Thinking: Use small epsilon for floating point comparison precision
+    # Working Note: Use small epsilon for floating point comparison precision
     most_stable = [(s, std) for s, std in station_stddevs.items() 
                    if abs(std - min_stddev) < 0.0001]
     most_variable = [(s, std) for s, std in station_stddevs.items() 
@@ -238,10 +238,10 @@ def find_temperature_stability(data):
         with open('temperature_stability_stations.txt', 'w', encoding='utf-8') as f:
             # Write most stable stations (predictable climate)
             for station, stddev in most_stable:
-                f.write(f"Most Stable: {station}: StdDev {stddev:.1f}°C\n")
+                f.write(f"Most Stable: {station}: Smallest Standard Deviation {stddev:.1f}°C\n")
             # Write most variable stations (unpredictable climate)
             for station, stddev in most_variable:
-                f.write(f"Most Variable: {station}: StdDev {stddev:.1f}°C\n")
+                f.write(f"Most Variable: {station}: Largest Standard Deviation {stddev:.1f}°C\n")
         logging.info("Temperature stability results saved to 'temperature_stability_stations.txt'")
     except Exception as e:
         logging.error(f"Error writing stability results: {e}")
@@ -253,53 +253,50 @@ def main():
     """
     Execute temperature analysis with comprehensive error handling.
     
-    Working Logic:
+    Program Logic:
     1. Load and validate all CSV temperature data
     2. Run three separate analyses: seasonal averages, temperature ranges, stability
     3. Each analysis creates its own output file
     4. Log progress and handle failures gracefully
     
-    Thinking: Orchestrate the full analysis pipeline while providing clear feedback
-    to user about progress and any issues encountered
     """
     try:
         logging.info("Starting temperature analysis...")
         
         # Step 1: Load and validate all temperature data from CSV files
-        # Logic: Fail early if data is missing or corrupted
+        # Note: Fail early if data is missing or corrupted
         data = read_csv_files()
         logging.info(f"Loaded {len(data)} temperature records")
         
         # Step 2: Calculate overall seasonal temperature patterns
-        # Thinking: Understanding seasonal trends is foundational for climate analysis
+        # Working Note: Understanding seasonal trends is foundational for climate analysis
         seasonal_averages = calculate_seasonal_averages(data)
         logging.info("Seasonal averages calculated")
         
         # Step 3: Identify stations with extreme temperature variability
-        # Logic: Range analysis reveals continental vs coastal climate characteristics
+        # Note: Range analysis reveals continental vs coastal climate characteristics
         max_range_stations = find_largest_temp_range(data)
         logging.info("Temperature ranges analyzed")
         
         # Step 4: Analyze temperature consistency patterns
-        # Thinking: Stability analysis identifies predictable vs chaotic climate zones
+        # ThiNotenkNoteing: Stability analysis identifies predictable vs chaotic climate zones
         most_stable, most_variable = find_temperature_stability(data)
         logging.info("Temperature stability analyzed")
         
         # Provide user-friendly summary of completed analysis
-        # Logic: Give immediate feedback about what was accomplished
+        # Note: Give immediate feedback about what was accomplished
         print("\n=== TEMPERATURE ANALYSIS COMPLETE ===")
         print(f"Processed {len(data)} records")
         print(f"Results saved to 3 output files")
         
     except Exception as e:
-        # Handle any failures gracefully with clear error reporting
-        # Thinking: Don't let the program crash silently - show what went wrong
+        # Handling failures with clear error reporting
         logging.error(f"Analysis failed: {e}")
         print(f"Error: {e}")
         raise
 
 # Entry point: Only run analysis when script is executed directly
-# Logic: Allows importing functions without auto-executing main analysis
+# Note: Allows importing functions without auto-executing main analysis
 if __name__ == "__main__":
     main() 
 
